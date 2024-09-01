@@ -1,40 +1,49 @@
 ---
-import { getCollection, type CollectionEntry } from "astro:content";
+import { getEntry } from "astro:content";
 import { Image } from 'astro:assets';
 import Layout from "../../layouts/Layout.astro";
 import H1 from "../../components/H1.astro";
 import Main from "../../components/Main.astro";
 
+export const prerender = false;
 
-export const getStaticPaths = async () => {
-  const posts = await getCollection("posts");
-  return posts.map((post: CollectionEntry<"posts">) => ({
-    params: { slug: post.slug },
-    props: { post },
-  }));
-};
+const { slug } = Astro.params;
 
-type Props = {
-  post: CollectionEntry<"posts">;
-};
+if (!slug) {
+  return Astro.redirect("/404");
+}
 
-const { post } = Astro.props;
-const { Content } = await post.render();
+let post;
+let Content;
+
+try {
+  post = await getEntry("posts", slug);
+  
+  if (!post) {
+    return Astro.redirect("/404");
+  }
+
+  const rendered = await post.render();
+  Content = rendered.Content;
+} catch (error) {
+  console.error("Error fetching post:", error);
+  return Astro.redirect("/error");
+}
 ---
 
 <Layout title={post.data.title}>
   <Main>
     <H1 text={post.data.title} />
     <Image
-    src={post.data.image} 
-    alt={post.data.title}
-    width={1024}
-    height={600 / 1.5}
-    format="webp"
-    class="rounded-2xl shadow-xl mb-6 aspect-thumbnail object-cover"
-   />
-   <div class = "prose prose-2xl overflow-visible relative mb-20">
-    <Content />
+      src={post.data.image} 
+      alt={post.data.title}
+      width={1024}
+      height={683}
+      format="webp"
+      class="rounded-2xl shadow-xl mb-6 aspect-thumbnail object-cover"
+    />
+    <div class="prose prose-2xl overflow-visible relative mb-20">
+      <Content />
     </div>
   </Main>
 </Layout>
